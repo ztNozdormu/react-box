@@ -1,9 +1,6 @@
 pragma solidity ^0.5.0;
 
-/**
-  * 彩票智能合约
-  *
-  */
+
 contract Lottery {
 
     // 1. 管路员：负责开奖和退奖
@@ -21,7 +18,8 @@ contract Lottery {
     constructor() public {
         manager = msg.sender;
     }
-
+    // 提供一个供外部调用的函数
+    function () payable external{ }
     //1. 每个人可以投多次，但是每次只能投1ether
     function play() payable public {
         require(msg.value == 1 ether);
@@ -35,7 +33,8 @@ contract Lottery {
     // 用哈数值来实现大的随机数。 v3
     // 哈希内容的随机：当前时间，区块的挖矿难度，彩民数量，作为输入
 
-    function kaiJiang() onlyManager public {
+
+    function kaiJiang() onlyManager  public{
 
         bytes memory v1 = abi.encodePacked(block.timestamp, block.difficulty, players.length);
         bytes32 v2 = keccak256(v1);
@@ -44,12 +43,13 @@ contract Lottery {
 		uint256 index = v3 % players.length;
 
 		winner = players[index];
-
+        // 90% 奖励给中奖者 address(this) 为合约账户
 		uint256 money = address(this).balance * 90 / 100;
+		// 管理员收手续费 10%
 		uint256 money1 = address(this).balance - money;
-
-		winner.transfer(money);
-		manager.transfer(money1);
+       // transfer 由被转账方调用
+		address(uint160(winner)).transfer(money); // 向中奖者转入money的eth
+		address(uint160(manager)).transfer(money1); // 向管理员中航中转入剩余的eth
 
 		round++;
 		delete players;
@@ -61,11 +61,11 @@ contract Lottery {
     // 2. 期数加一
     // 3. 彩民池清零
 
-    // 调用者花费手续费（管理员）
+    // 调用者花费手续费（管理员）管理员退款给参与者
 
     function tuiJiang() onlyManager public {
         for (uint256 i= 0; i < players.length; i++) {
-            players[i].transfer(1 ether);
+          address(uint160(players[i])).transfer(1 ether);
         }
 
         round++;
@@ -88,8 +88,9 @@ contract Lottery {
         return address(this).balance;
     }
 
-    //获取彩民数组
-    function getPlayers() public view returns(address[]) {
+    // 获取彩民数组 注意新版本修改后 参数返回值指定存储地址为memory 结构体 数组 默认存储地址为storage
+    function getPlayers() public view returns(address[] memory) {
+
         return players;
     }
 }
